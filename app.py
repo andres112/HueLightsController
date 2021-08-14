@@ -1,8 +1,22 @@
-from flask import Flask
+from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 import argparse
+import discoverhue
 
 app = Flask(__name__)
+
+
+@app.route('/discover', methods=['GET'])
+def discover():
+    try:
+        if request.method == 'GET':
+            found = discoverhue.find_bridges()
+            for bridge in found:
+                print(' Bridge ID {br} at {ip}'.format(br=bridge, ip=found[bridge]))
+            return make_response(jsonify({'response': 'Done!'}), 200)
+    except Exception as e:
+        print(e)
+
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser(description="Stressor Test Platform API")
