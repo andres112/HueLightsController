@@ -5,11 +5,16 @@ import ipaddress
 import discoverhue
 from phue import Bridge
 from helpers import *
+import os
+import pygame
 
 app = Flask(__name__)
 
+pygame.init()
+pygame.mixer.init()
 
-@app.route('/discover', methods=['GET'])
+
+@app.route('/discover_bridge', methods=['GET'])
 def discover():
     try:
         if request.method == 'GET':
@@ -21,7 +26,7 @@ def discover():
         print(e)
 
 
-@app.route('/control', methods=['POST'])
+@app.route('/control_lights', methods=['POST'])
 def control():
     try:
         # Validate if valid ip_address
@@ -39,11 +44,15 @@ def control():
             current_status = bridge.get_group('lab')['state']['any_on']
 
             # Light parameters command
-            [r, g, b] = request.json['rgb'] if 'rgb' in request.json else [256, 256, 256]
-            on = request.json['on'] if 'on' in request.json else None
-            bri = request.json['bri'] if 'bri' in request.json else 254
-            sat = request.json['sat'] if 'sat' in request.json else 254
-            lights = request.json['lights'] if 'lights' in request.json else lights
+            [r, g, b] = request.json['rgb'] \
+                if ('rgb' in request.json and request.json['rgb'] is not None) \
+                else [255, 255, 255]
+            on = request.json['on'] if ('on' in request.json and request.json['on'] is not None) else None
+            bri = request.json['bri'] if ('bri' in request.json and request.json['bri'] is not None) else 254
+            sat = request.json['sat'] if ('sat' in request.json and request.json['sat'] is not None) else 254
+            lights = request.json['lights'] \
+                if ('lights' in request.json and request.json['lights'] is not None) \
+                else lights
             light_ids = [int(light) for light in lights]  # get the light_id in int format
 
             xy = rgbTohue(r, g, b)
@@ -53,7 +62,7 @@ def control():
                 command['on'] = on
 
             # execute commands in lights
-            bridge.set_light(light_ids, command, transitiontime=1)
+            bridge.set_light(light_ids, command, transitiontime=0)
 
             print(bridge.get_api())  # Get the status after change
 
@@ -64,8 +73,9 @@ def control():
         print(e)
 
 
+
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser(description="Stressor Test Platform API")
+    PARSER = argparse.ArgumentParser(description="Phillips hue lights and music control")
     PARSER.add_argument('--debug', action='store_true',
                         help="Use flask debug/dev mode with file change reloading")
     ARGS = PARSER.parse_args()
