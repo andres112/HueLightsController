@@ -17,6 +17,7 @@ app = Flask(__name__)
 pygame.init()
 pygame.mixer.init()
 
+
 ################################################################################
 # Important Note: create a music folder in root, add mp3 files for music control
 
@@ -77,7 +78,7 @@ def control():
                 command['on'] = on
 
             # execute commands in lights
-            bridge.set_light(light_ids, command, transitiontime=0)
+            bridge.set_light(light_ids, command)
 
             print(bridge.get_api())  # Get the status after change
 
@@ -98,7 +99,7 @@ def control_nano():
             # Create Dock object. For the first time is required to push the Dock's button
             dock = Nanoleaf(request.json['bridge_ip'])
             # TODO: Adapt for Nanoleaf
-            # status = bridge.get_api()
+            status = dock.get_info()
             # if any('error' in i for i in status):
             #     return make_response(jsonify(status), 500)
             #
@@ -109,7 +110,7 @@ def control_nano():
             # [r, g, b] = request.json['rgb'] \
             #     if ('rgb' in request.json and request.json['rgb'] is not None) \
             #     else [255, 255, 255]
-            # on = request.json['on'] if ('on' in request.json and request.json['on'] is not None) else None
+            on = request.json['on'] if ('on' in request.json and request.json['on'] is not None) else None
             # bri = request.json['bri'] if ('bri' in request.json and request.json['bri'] is not None) else 254
             # sat = request.json['sat'] if ('sat' in request.json and request.json['sat'] is not None) else 254
             # lights = request.json['lights'] \
@@ -119,9 +120,9 @@ def control_nano():
             #
             # xy = rgbTohue(r, g, b)
             # command = {'bri': getValue(bri), 'xy': xy, "sat": getValue(sat)}
-            #
-            # if on is not None and current_status != on:
-            #     command['on'] = on
+
+            if on is not None and not dock.get_power():
+                dock.power_on() if on else dock.power_off()
             #
             # # execute commands in lights
             # bridge.set_light(light_ids, command, transitiontime=0)
