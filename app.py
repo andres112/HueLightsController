@@ -55,6 +55,7 @@ def connect():
             # Create Bridge object. For the first time is required to push the Phillips Bridge's power button
             global bridge
             bridge = Bridge(request.json['bridge_ip'])
+            bridge.connect()
 
             # Create Dock object. For the first time is required to push the Nanoleaf Dock's power button
             global dock
@@ -71,13 +72,9 @@ def connect():
 def control():
     try:
         if request.method == 'POST':
-            # For the first time is required to push the Bridge's button before execute the code delow
-            bridge.connect()
-            status = bridge.get_api()
-            if any('error' in i for i in status):
-                return make_response(jsonify(status), 500)
+            print(request.json)
+            start_time = time.time()
 
-            lights = bridge.get_group('lab', 'lights')
             current_status = bridge.get_group('lab')['state']['any_on']
 
             # Light parameters command
@@ -87,7 +84,7 @@ def control():
             on = request.json['on'] if ('on' in request.json and request.json['on'] is not None) else None
             lights = request.json['lights'] \
                 if ('lights' in request.json and request.json['lights'] is not None) \
-                else lights
+                else [1, 2, 3]
             light_ids = [int(light) for light in lights]  # get the light_id in int format
 
             command = rgbTohue(r, g, b)
@@ -95,20 +92,23 @@ def control():
                 command['on'] = on
 
             # execute commands in lights
-            bridge.set_light(light_ids, command)
+            bridge.set_light(light_ids, command, transitiontime=0)
+            print(f"Philips: Command executed in {time.time() - start_time} sec.")
 
+            # Get the status after change
             print("Phillips Hue state:")
-            print(bridge.get_api())  # Get the status after change
+            print(bridge.get_api())
 
             return make_response(jsonify({'message': 'command executed successfully'}), 200)
     except Exception as e:
         print(e)
 
 
-@app.route('/control_nanoleaf', methods=['POST', 'PUT'])
+@app.route('/control_nanoleaf', methods=['POST'])
 def control_nano():
     try:
         if request.method == 'POST':
+            start_time = time.time()
             [r, g, b] = request.json['rgb'] \
                 if ('rgb' in request.json and request.json['rgb'] is not None) \
                 else [255, 255, 255]
@@ -116,16 +116,15 @@ def control_nano():
 
             # Validate if nanoleaf is on
             power = dock.get_power()
+            # execute command
             if on or (power and on is None):
                 dock.set_color((r, g, b))
             else:
                 dock.power_off()
+            print(f"Nanoleaf: Command executed in {time.time() - start_time} sec.")
 
             print("Nanoleaf state:")
-            print(f"on: {dock.get_power()}, "
-                  f"hue: {dock.get_hue()}, "
-                  f"bri: {dock.get_brightness()}, "
-                  f"sat: {dock.get_saturation()}")  # Get the status after change
+            print(dock.get_info())  # Get the status after change
 
             return make_response(jsonify({'message': 'command executed successfully'}), 200)
     except Exception as e:

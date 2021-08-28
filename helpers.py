@@ -1,5 +1,6 @@
 import threading
 import colorsys
+import time
 
 
 def set_interval(func, sec):
@@ -33,9 +34,4 @@ def rgbTohue(r, g, b):
     # return [x,y]
 
 
-def getValue(x):
-    if x > 100:
-        x = 100
-    if x < 0:
-        x = 0
-    return int(254 * x / 100)
+
