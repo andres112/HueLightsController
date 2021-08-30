@@ -72,7 +72,7 @@ def connect():
 def control():
     try:
         if request.method == 'POST':
-            print(request.json)
+            print(f"Command received: {request.json}")
             start_time = time.time()
 
             current_status = bridge.get_group('lab')['state']['any_on']
@@ -87,6 +87,12 @@ def control():
                 else [1, 2, 3]
             light_ids = [int(light) for light in lights]  # get the light_id in int format
 
+            # Get the ambient light in lux, if nothing comes assign the value for a standard office 300 to 500 lux
+            lux = int(request.json['ambient']['light']) if (
+                    'ambient' in request.json and type(request.json['ambient']) is not bool) else MAX_LUX
+
+            # Adapt the color bright to ambient light, linear bright behavior
+            [r, g, b] = adaptBright(r, g, b, lux, 0)
             command = rgbTohue(r, g, b)
             if on is not None and current_status != on:
                 command['on'] = on
@@ -113,18 +119,23 @@ def control_nano():
                 if ('rgb' in request.json and request.json['rgb'] is not None) \
                 else [255, 255, 255]
             on = request.json['on'] if ('on' in request.json and request.json['on'] is not None) else None
+            # Get the ambient light in lux, if nothing comes assign the value for a standard office 300 to 500 lux
+            lux = int(request.json['ambient']['light']) if (
+                    'ambient' in request.json and type(request.json['ambient']) is not bool) else MAX_LUX
 
             # Validate if nanoleaf is on
             power = dock.get_power()
             # execute command
             if on or (power and on is None):
+                # Adapt the color bright to ambient light, linear bright behavior
+                [r, g, b] = adaptBright(r, g, b, lux, 0)
                 dock.set_color((r, g, b))
             else:
                 dock.power_off()
             print(f"Nanoleaf: Command executed in {time.time() - start_time} sec.")
 
             print("Nanoleaf state:")
-            print(dock.get_info())  # Get the status after change
+            print(dock.get_info()['state'])  # Get the status after change
 
             return make_response(jsonify({'message': 'command executed successfully'}), 200)
     except Exception as e:
