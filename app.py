@@ -142,28 +142,32 @@ def control_nano():
         print(e)
 
 
-@app.route('/control_music/<action>', methods=['GET'])
+@app.route('/control_music/<action>', methods=['POST'])
 def music(action):
     try:
-        if request.method == 'GET':
-            path = "./music/"
-            track_list = os.listdir(path)
+        path = "./music/"
+        track_list = os.listdir(path)
+        if request.method == 'POST':
+            params = {'time': (request.json['time'] * 1000) if 'time' in request.json else -1,
+                      'song': f"{request.json['song_id']}.mp3" if (
+                              'song_id' in request.json and f"{request.json['song_id']}.mp3" in track_list) else "628.mp3"}
             pygame.mixer.music.set_volume(0) if action == "stop" else pygame.mixer.music.set_volume(1)
-            for song in track_list:
-                if song.endswith(".mp3"):
-                    song_path = path + song
-                    pygame.mixer.music.load(str(song_path))
-                    print(action)
-                    if action == "stop":
-                        pygame.mixer.music.stop()
-                        time.sleep(0.5)
-                        pygame.mixer.music.unload()
-                    elif action == "play":
-                        pygame.mixer.music.play()
-                        print("Playing... " + song)
-                    while pygame.mixer.music.get_busy():
-                        time.sleep(0.3)
+            song_path = path + params['song']
+            pygame.mixer.music.load(str(song_path))
+            if action == "stop":
+                pygame.mixer.music.stop()
+            elif action == "play":
+                pygame.mixer.music.play(loops=-1, fade_ms=3000)
+                start = pygame.time.get_ticks()
+
+            while pygame.mixer.music.get_busy():
+                time_ongoin = pygame.time.get_ticks() - start
+                if 0 < params['time'] <= time_ongoin:
+                    print(time_ongoin)
+                    pygame.mixer.music.stop()
+
             return make_response(jsonify({'message': 'command executed successfully'}), 200)
+
     except Exception as e:
         print(e)
 
