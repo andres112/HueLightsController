@@ -149,9 +149,9 @@ def music(action):
         track_list = os.listdir(path)
         if request.method == 'POST':
             params = {'time': (request.json['time'] * 1000) if 'time' in request.json else -1,
-                      'song': f"{request.json['song_id']}.mp3" if (
-                              'song_id' in request.json and f"{request.json['song_id']}.mp3" in track_list) else "628.mp3"}
-            pygame.mixer.music.set_volume(0) if action == "stop" else pygame.mixer.music.set_volume(1)
+                      'song': f"{request.json['song_id']}" if (
+                              'song_id' in request.json and f"{request.json['song_id']}" in track_list) else "245.mp3"}
+            pygame.mixer.music.set_volume(0) if action == "stop" else pygame.mixer.music.set_volume(0.8)
             song_path = path + params['song']
             pygame.mixer.music.load(str(song_path))
             if action == "stop":
